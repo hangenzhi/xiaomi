@@ -1,0 +1,70 @@
+测试脚本
+
+表：hs_spin:ods_item_all
+
+1、找出范围数据
+2367900818650169344@YLXS002@1666665120000   timestamp=1666665128935（2022-10-25 10:32:08）
+get 'hs_spin:ods_item_all','2367900818650169344@YLXS002@1666665120000'
+
+COLUMN                                                               CELL 
+cf:alias                                                            timestamp=1666665128935, value=\xE5\xBD\x93\xE5\x89\x8D\xE7\xAE\xA1\xE7\xBA\xB1\xE9\x95\xBF\xE5\xBA\xA6
+cf:crt                                                              timestamp=1666665128935, value=2022-10-25 10:32:00                                                     
+cf:host_id                                                          timestamp=1666665128935, value=2367900818650169344                                                     
+cf:htime                                                            timestamp=1666665128935, value=2022-10-25 10:30:22                                                     
+cf:itemname                                                         timestamp=1666665128935, value=YLXS002                                                                 
+cf:val                                                              timestamp=1666665128935, value=1147                                                                                                                        
+6 row(s) in 0.2590 seconds
+
+2、备份范围数据
+
+######开始时间
+export current1="2022-10-25 00:00:00"
+######结束时间
+export current2="2022-10-26 00:00:00"
+######需要处理的hbase表
+export tablename="hs_spin:ods_item_all"
+
+3、创建测试表
+hs_spin:ceshi
+create 'hs_spin:ceshi','cf'
+
+4、导入测试表数据
+hbase org.apache.hadoop.hbase.mapreduce.Driver import 'hs_spin:ceshi' /h/ceshi.hs_spin/20221025
+get 'hs_spin:ceshi','2367900818650169344@YLXS002@1666665120000'
+
+5、测试删除脚本
+scala -classpath dataAnalys-1.0.jar com.hangshu.utils.DeleteHbaseApp "hs_spin:ceshi" 1666627200000 1666713600000
+
+6、扫描指定时间戳数据
+scan 'hs_spin:dwd_min_yield_val',{TIMERANGE => [1609430400000,1609516800000],RAW=>TRUE}
+get 'hs_spin:dwd_min_yield_val','1433765890@2397712778241507348@20210101013900'
+
+375.8 G  1.1 T    /hbase/data/hs_spin/dwd_min_yield_val
+374.4 G  1.1 T    /hbase/data/hs_spin/dwd_min_yield_val
+
+
+/opt/module/spark-2.1.1-bin-hadoop2.6/bin/spark-submit --class com.hangshu.utils.DeleteHbaseApp \
+--master yarn \
+--deploy-mode cluster \
+--num-executors 3 \
+--driver-memory 2g \
+--executor-memory 3g \
+--executor-cores 1 \
+--conf spark.default.parallelism=18 \
+--queue thequeue \
+/opt/hbase_data_shell/hbase-delete-idc.jar "hs_spin:dwd_min_yield_val" 1609430400000 1609516800000
+
+
+/opt/module/spark-2.1.1-bin-hadoop2.6/bin/spark-submit --class com.hangshu.start.CalcProApp \
+--master yarn \
+--deploy-mode cluster \
+--num-executors 9 \
+--driver-memory 3g \
+--executor-memory 3g \
+--executor-cores 1 \
+--conf spark.default.parallelism=27 \
+--queue thequeue \
+/opt/spark_jar/offline/dataAnalys-1.0.jar
+
+
+
